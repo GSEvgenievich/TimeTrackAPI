@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using DataLayer.Models;
 using Microsoft.EntityFrameworkCore;
-using TimeTrackAPI.Models;
 
-namespace TimeTrackAPI.Data;
+namespace DataLayer.Data;
 
 public partial class TimeTrackContext : DbContext
 {
@@ -97,6 +95,7 @@ public partial class TimeTrackContext : DbContext
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.SalaryAmount).HasPrecision(10, 2);
             entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.SalaryDate).HasColumnType("timestamp without time zone");
 
             entity.HasOne(d => d.User).WithMany(p => p.Salaries)
                 .HasForeignKey(d => d.UserId)

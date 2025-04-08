@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TimeTrackAPI.Models;
+namespace DataLayer.Models;
 
 public partial class Salary
 {
@@ -11,7 +11,7 @@ public partial class Salary
 
     public decimal SalaryAmount { get; set; }
 
-    public DateOnly SalaryDate { get; set; }
+    public DateTime SalaryDate { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

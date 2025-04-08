@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DataLayer.Data;
+using DataLayer.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TimeTrackAPI.Data;
-using TimeTrackAPI.Models;
 
 namespace TimeTrackAPI.Controllers
 {
@@ -16,88 +16,68 @@ namespace TimeTrackAPI.Controllers
             _context = context;
         }
 
-        // GET: api/Salaries
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Salary>>> GetSalaries()
+        // GET: api/Salaries/Last
+        [HttpGet("Last")]
+        public async Task<ActionResult<IEnumerable<Salary>>> GetLastSalaries()
         {
-            return await _context.Salaries.ToListAsync();
-        }
-
-        // GET: api/Salaries/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Salary>> GetSalary(int id)
-        {
-            var salary = await _context.Salaries.FindAsync(id);
-
-            if (salary == null)
-            {
-                return NotFound();
-            }
-
-            return salary;
-        }
-
-        // PUT: api/Salaries/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutSalary(int id, Salary salary)
-        {
-            if (id != salary.SalaryId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(salary).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!SalaryExists(id))
+                var lastSalaries = await _context.Salaries.GroupBy(s => s.UserId).Select(g => g.OrderByDescending(s => s.SalaryDate).FirstOrDefault()).ToListAsync();
+                if (lastSalaries == null)
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
+                return Ok(lastSalaries);
             }
-
-            return NoContent();
-        }
-
-        // POST: api/Salaries
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Salary>> PostSalary(Salary salary)
-        {
-            _context.Salaries.Add(salary);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetSalary", new { id = salary.SalaryId }, salary);
-        }
-
-        // DELETE: api/Salaries/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSalary(int id)
-        {
-            var salary = await _context.Salaries.FindAsync(id);
-            if (salary == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                return BadRequest(ex.Message);
             }
-
-            _context.Salaries.Remove(salary);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
 
-        private bool SalaryExists(int id)
+        // GET: api/Salaries/LastMonth
+        [HttpGet("LastMonth")]
+        public async Task<ActionResult<IEnumerable<Salary>>> GetLastMonthSalaries()
         {
-            return _context.Salaries.Any(e => e.SalaryId == id);
+            try
+            {
+                var lastDayOfLastMonth = DateTime.Now;
+                var firstDayOfLastMonth = lastDayOfLastMonth.AddMonths(-1);
+
+                var lastMonthSalaries = await _context.Salaries
+                    .Where(s => s.SalaryDate >= firstDayOfLastMonth && s.SalaryDate <= lastDayOfLastMonth)
+                    .ToListAsync();
+
+                if (lastMonthSalaries == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(lastMonthSalaries);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // GET: api/Salaries/User_1
+        [HttpGet("User_{user_id}")]
+        public async Task<ActionResult<IEnumerable<Salary>>> GetUserSalaries(int user_id)
+        {
+            try
+            {
+                var userSalaries = await _context.Salaries.OrderBy(s => s.SalaryDate).Where(s => s.UserId == user_id).ToListAsync();
+                if (userSalaries == null)
+                {
+                    return NotFound();
+                }
+                return Ok(userSalaries);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

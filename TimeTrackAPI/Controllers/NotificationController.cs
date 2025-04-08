@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DataLayer.Data;
+using DataLayer.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TimeTrackAPI.Data;
-using TimeTrackAPI.Models;
+using System.Data.Common;
 
 namespace TimeTrackAPI.Controllers
 {
@@ -15,47 +16,62 @@ namespace TimeTrackAPI.Controllers
         {
             _context = context;
         }
-
         // GET: api/Notifications
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Notification>>> GetNotifications()
+        [HttpGet("User_{userId}/All")]
+        public async Task<ActionResult<IEnumerable<Notification>>> GetAllUserNotifications(int userId)
         {
-            return await _context.Notifications.ToListAsync();
+            try
+            {
+                return await _context.Notifications.Where(n => n.UserId == userId).ToListAsync();
+            }
+            catch (DbException dbEx)
+            {
+                if (!UserExists(userId))
+                {
+                    return NotFound($"User with id = {userId} NOT FOUND");
+                }
+                else
+                {
+                    return BadRequest(dbEx.Message);
+                }
+            }
         }
 
-        // GET: api/Notifications/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Notification>> GetNotification(int id)
+        // GET: api/Notifications
+        [HttpGet("User_{userId}/Unread")]
+        public async Task<ActionResult<IEnumerable<Notification>>> GetUnreadUserNotifications(int userId)
         {
-            var notification = await _context.Notifications.FindAsync(id);
-
-            if (notification == null)
+            try
             {
-                return NotFound();
+                return await _context.Notifications.Where(n => n.UserId == userId & n.NotificationIsRead == false).ToListAsync();
             }
-
-            return notification;
+            catch (DbException dbEx)
+            {
+                if (!UserExists(userId))
+                {
+                    return NotFound($"User with id = {userId} NOT FOUND");
+                }
+                else
+                {
+                    return BadRequest(dbEx.Message);
+                }
+            }
         }
 
         // PUT: api/Notifications/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutNotification(int id, Notification notification)
+        [HttpPut("{ntfId}/Read")]
+        public async Task<IActionResult> ReadNotification(int ntfId)
         {
-            if (id != notification.NotificationId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(notification).State = EntityState.Modified;
-
             try
             {
+                var notification = await _context.Notifications.FirstOrDefaultAsync(n => n.NotificationId == ntfId);
+                notification.NotificationIsRead = true;
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!NotificationExists(id))
+                if (!NotificationExists(ntfId))
                 {
                     return NotFound();
                 }
@@ -68,29 +84,20 @@ namespace TimeTrackAPI.Controllers
             return NoContent();
         }
 
-        // POST: api/Notifications
+        // PUT: api/Notifications/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Notification>> PostNotification(Notification notification)
+        [HttpPut("Read")]
+        public async Task<IActionResult> ReadAllNotifications()
         {
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetNotification", new { id = notification.NotificationId }, notification);
-        }
-
-        // DELETE: api/Notifications/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteNotification(int id)
-        {
-            var notification = await _context.Notifications.FindAsync(id);
-            if (notification == null)
+            try
             {
-                return NotFound();
+                await _context.Notifications.ForEachAsync(n => n.NotificationIsRead = true);
+                await _context.SaveChangesAsync();
             }
-
-            _context.Notifications.Remove(notification);
-            await _context.SaveChangesAsync();
+            catch (DbException dbEx)
+            {
+                return BadRequest(dbEx.Message);
+            }
 
             return NoContent();
         }
@@ -98,6 +105,11 @@ namespace TimeTrackAPI.Controllers
         private bool NotificationExists(int id)
         {
             return _context.Notifications.Any(e => e.NotificationId == id);
+        }
+
+        private bool UserExists(int id)
+        {
+            return _context.Users.Any(e => e.UserId == id);
         }
     }
 }

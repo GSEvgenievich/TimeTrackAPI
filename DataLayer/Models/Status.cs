@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TimeTrackAPI.Models;
+namespace DataLayer.Models;
 
 public partial class Status
 {

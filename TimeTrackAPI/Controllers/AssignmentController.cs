@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TimeTrackAPI.Data;
-using TimeTrackAPI.Models;
+using DataLayer.Data;
+using DataLayer.Models;
 
 namespace TimeTrackAPI.Controllers
 {
